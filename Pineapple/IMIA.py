@@ -1,5 +1,5 @@
 import concurrent.futures
-import pandas as pd 
+import pandas as pd
 import numpy as np
 import IB_MOEA
 import matplotlib.pyplot as plt
@@ -8,7 +8,8 @@ import Operadores
 import Funciones
 import Indicadores
 
-#------------------Parametros---------------------------------
+# ------------------Parametros---------------------------------
+# Definición de parámetros desde el módulo Config
 population_size = Config.population_size
 
 min_values = Config.min_values
@@ -18,12 +19,22 @@ list_indicators = Config.list_indicators
 m = Config.m
 
 epsilon = 1e-10
+# -------------------------------------------------------------
 
-#-------------------------------------------------------------
+# ----------Funcion para graficar los individuos---------------
+def graficar(fig, matriz, titulo, posicion):
+    """
+    Función para graficar individuos en 3D.
 
-#----------Funcion para graficar los individuos---------------
-def graficar(fig,matriz,titulo,posicion):
+    Parameters:
+    - fig: figura de matplotlib
+    - matriz: matriz de soluciones
+    - titulo: título del gráfico
+    - posicion: posición en la figura
 
+    Returns:
+    - None
+    """
     # Extrae las columnas de la matriz
     columna1 = matriz[:, 0]  # Reemplaza el índice 0 con el número de columna que desees para DTLZ1
     columna2 = matriz[:, 1]  # Reemplaza el índice 1 con el número de columna que desees para DTLZ2
@@ -38,21 +49,38 @@ def graficar(fig,matriz,titulo,posicion):
     ax.set_xlabel('F1')
     ax.set_ylabel('F2')
     ax.set_zlabel('F3')
-    
+
     # Agrega un título a la figura
     ax.set_title(titulo)
     ax.view_init(elev=20, azim=25)
-#-------------------------------------------------------------
+# -------------------------------------------------------------
 
-#---------Funcion para ejecutar el IBEA paralelamente---------
+# ---------Funcion para ejecutar el IBEA paralelamente---------
 def ejecutar_IBEA(ind):
+    """
+    Ejecuta el algoritmo IBEA con el indicador especificado.
+
+    Parameters:
+    - ind: indicador a utilizar
+
+    Returns:
+    - Población final después de las generaciones y el indicador utilizado
+    """
     P = IB_MOEA.IBEA(ind)
     return P, ind
-#-------------------------------------------------------------
+# -------------------------------------------------------------
 
-#--------Obtener las soluciones de los archivos---------------
+# --------Obtener las soluciones de los archivos---------------
 def obtenes_soluciones(a):
+    """
+    Obtiene las soluciones de los archivos CSV.
 
+    Parameters:
+    - a: sufijo para los archivos CSV ("p" o "a")
+
+    Returns:
+    - Soluciones filtradas
+    """
     # Crear un diccionario para almacenar los DataFrames
     dataframes = {}
 
@@ -66,23 +94,29 @@ def obtenes_soluciones(a):
 
     soluciones = np.array(combined_df["Solucion"])
 
-    sol = [] 
+    sol = []
     for solucion in soluciones:
         sol.append(np.fromstring(solucion[1:-1], sep=' '))
 
     soluciones = np.array(sol)
-    
-    #Filtramos las soluciones que se pasen de los valores minimos y maximos 
+
+    # Filtrar las soluciones que se pasen de los valores mínimos y máximos
     mascara = np.all((soluciones[:, -(len(min_values)):] >= min_values) & (soluciones[:, -(len(min_values)):] <= max_values), axis=1)
-    
+
     # Obtener las soluciones que cumplen con el rango
     soluciones_filtradas = soluciones[mascara]
 
     return soluciones_filtradas
-#-------------------------------------------------------------
+# -------------------------------------------------------------
 
-#------------Paralelizacion de los indicadores----------------  
+# ------------Paralelizacion de los indicadores----------------
 def IMIA():
+    """
+    Ejecuta el algoritmo IMIA.
+
+    Returns:
+    - Soluciones resultantes
+    """
     tasks = []
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -93,53 +127,57 @@ def IMIA():
     results = [task.result() for task in tasks]
 
     Operadores.Migration()
-    
+
     fig = plt.figure()
     for i, (P, ind) in enumerate(results):
         posicion = 151 + i  # Aumenta la posición en cada iteración
-        graficar(fig,P, ind, posicion)
-    
+        graficar(fig, P, ind, posicion)
+
     print("Obteniendo soluciones")
     P = obtenes_soluciones("p")
     A = obtenes_soluciones("a")
-    
-    A = np.vstack([P,A])
+
+    A = np.vstack([P, A])
     return A
-#-------------------------------------------------------------
+# -------------------------------------------------------------
 
-#--------------------Ejecucion principal----------------------   
+# --------------------Ejecucion principal----------------------
 def main():
-
+    """
+    Función principal que ejecuta el algoritmo IMIA.
+    """
     A = IMIA()
-    
+
     A = Operadores.no_dominados(A)
 
-    if(len(A) > population_size):
+    if len(A) > population_size:
         print(f"longitud A - - - {len(A)}")
         # Punto Nadir
         nadir_point = np.max(A, axis=0)
 
         # Punto Ideal
         ideal_point = np.min(A, axis=0)
-        
-        #Normalizacion de las soluciones
+
+        # Normalizacion de las soluciones
         A = (A - ideal_point) / (nadir_point - ideal_point + epsilon)
-        
-    while(len(A) > population_size):
+
+    while len(A) > population_size:
         print(f"longitud A - - - {len(A)}")
-        i_aw = np.argmax([Indicadores.C_Es(a,A,(m-1)) for a in A])
+        i_aw = np.argmax([Indicadores.C_Es(a, A, (m-1)) for a in A])
         aw = A[i_aw]
-        A = Operadores.quitar(A,aw)
-    
-    filename = f"IMIA"+".csv"
-    
-    IB_MOEA.archivo(A,filename,"IMIA")
-    
+        A = Operadores.quitar(A, aw)
+
+    filename = f"IMIA" + ".csv"
+
+    IB_MOEA.archivo(A, filename, "IMIA")
+
     fig = plt.figure()
-    graficar(fig,A,"IMIA",111)
-    
+    graficar(fig, A, "IMIA", 111)
+
     # Muestra el gráfico
     plt.show()
 
-main()
-#-------------------------------------------------------------
+
+if __name__ == "__main__":
+    main()
+# -------------------------------------------------------------

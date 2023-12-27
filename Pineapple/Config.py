@@ -1,11 +1,24 @@
-population_size = 140  # Tamaño de la población
+# PEP 257: Docstring conventions
+"""
+Este script contiene configuraciones y parámetros para un algoritmo genético.
+"""
+
+# PEP 8: Imports should usually be on separate lines
+# Importar módulos necesarios
+
+# PEP 8: Imports should be grouped in the following order:
+# Standard library imports.
+# Related third-party imports.
+# Local application/library specific imports.
+
+population_size = 140  # PEP 8: Limit all lines to a maximum of 79 characters
 generations = 1000   # Número de generaciones
 
 dmin = 0
 dmax = 1
 
-n=3                      #Numero de variables
-m=3                      #Numero de funciones
+n = 3                      # Numero de variables
+m = 3                      # Numero de funciones
 
 distribution_index = 20  # Tamaño de la población para la selección
 mutation_rate = 1/n      # Tasa de mutación
@@ -16,7 +29,7 @@ max_values = [1, 1, 1]  # Valores máximos para las variables de decisión
 
 nmig = 1               # Número de migraciones
 
-TM = [               
+TM = [
     [0, 1, 1, 1, 1],
     [1, 0, 1, 1, 1],
     [1, 1, 0, 1, 1],
